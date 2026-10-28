@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manager"
+version = "0.1.0"
+description = "Claude CLI 기반 일정 관리 + Notion/Obsidian 백업"
+requires-python = ">=3.10"
+dependencies = ["tomli>=2; python_version < '3.11'"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+manager = "manager.cli:main"
+
+[tool.setuptools]
+packages = ["manager"]

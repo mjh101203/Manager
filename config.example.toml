@@ -1,0 +1,23 @@
+# Manager 설정 — config.toml 로 복사해서 사용 (config.toml은 git에 안 올라감)
+# 위치: ./config.toml 또는 ~/.manager/config.toml (또는 MANAGER_CONFIG 환경변수)
+
+db_path = "manager.db"   # 상대경로면 이 설정 파일 기준
+auto_sync = true         # 일정이 바뀔 때마다 자동 백업
+confirm = true           # AI가 제안한 변경을 적용 전에 확인
+
+[claude]
+command = "claude"       # Claude Code CLI 실행 파일
+model = ""               # 비우면 기본 모델. 빠르게: "haiku" / 정확하게: "sonnet"
+extra_args = []          # claude -p 에 추가로 붙일 인자
+timeout = 120
+history_turns = 6
+
+[notion]
+enabled = false
+token = ""               # 비워두고 NOTION_TOKEN 환경변수로 줘도 됨
+database_id = ""         # `manager notion-setup <부모페이지ID>` 로 생성 후 입력
+
+[obsidian]
+enabled = false
+vault_path = 'C:\Users\arang\Documents\Obsidian Vault'   # 작은따옴표 = 역슬래시 그대로
+folder = "Manager"

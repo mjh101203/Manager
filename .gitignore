@@ -6,3 +6,5 @@ __pycache__/
 # 비밀값·개인 데이터
 config.toml
 *.db
+planner.toml
+school_calendar.json

@@ -25,6 +25,7 @@ class NotionConfig:
     enabled: bool = False
     token: str = ""
     database_id: str = ""
+    pull: bool = True  # 명령 실행 전에 Notion에서 고친 내용을 먼저 가져옴
 
 
 @dataclass
@@ -37,6 +38,7 @@ class ObsidianConfig:
 @dataclass
 class Config:
     db_path: Path
+    planner_path: Path | None = None
     auto_sync: bool = True
     confirm: bool = True
     claude: ClaudeConfig = field(default_factory=ClaudeConfig)
@@ -80,8 +82,12 @@ def load_config(explicit: str | None = None) -> Config:
     if not n.get("token") and os.environ.get("NOTION_TOKEN"):
         n["token"] = os.environ["NOTION_TOKEN"]
 
+    pl = Path(os.path.expanduser(data.get("planner_path", "planner.toml")))
+    if not pl.is_absolute():
+        pl = base / pl
     return Config(
         db_path=db_path,
+        planner_path=pl,
         auto_sync=data.get("auto_sync", True),
         confirm=data.get("confirm", True),
         claude=ClaudeConfig(**data.get("claude", {})),

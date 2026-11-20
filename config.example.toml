@@ -16,6 +16,7 @@ history_turns = 6
 enabled = false
 token = ""               # 비워두고 NOTION_TOKEN 환경변수로 줘도 됨
 database_id = ""         # `manager notion-setup <부모페이지ID>` 로 생성 후 입력
+pull = true              # 명령 실행 전에 Notion에서 고친 내용을 먼저 가져옴
 
 [obsidian]
 enabled = false

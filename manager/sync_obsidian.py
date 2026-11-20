@@ -35,6 +35,13 @@ def _line(e: Event) -> str:
         parts.append(f"📍{e.location}")
     if e.category:
         parts.append(_tag(e.category))
+    if e.teachers:
+        parts.append(f"👤{e.teachers}")
+    if e.team:
+        parts.append(f"👥{e.team}")
+    if e.submit_link:
+        link = e.submit_link
+        parts.append(f"📤[제출]({link})" if link.startswith(("http://", "https://")) else f"📤{link}")
     parts.append(f"`#{e.id}`")
     out = " ".join(parts)
     if e.notes:
@@ -46,18 +53,26 @@ def _weekday(day: str) -> str:
     return WEEKDAYS[date.fromisoformat(day).weekday()]
 
 
-def render_daily(day: str, events: list[Event]) -> str:
+def render_daily(day: str, events: list[Event], folder: str = "Manager",
+                 prev_day: str | None = None, next_day: str | None = None) -> str:
+    """prev_day/next_day: 일정이 있는 이전/다음 날짜 (없는 날짜로 링크하면 클릭 시 빈 노트가 생김)."""
     cats = sorted({e.category for e in events if e.category})
     fm = ["---", MARKER, f"date: {day}", "tags:", "  - manager"]
     fm += [f"  - {_tag(c)[1:]}" for c in cats]
     fm.append("---")
-    d = date.fromisoformat(day)
-    nav = f"← [[{(d - timedelta(days=1)).isoformat()}]] · [[Index]] · [[{(d + timedelta(days=1)).isoformat()}]] →"
+    nav_parts = []
+    if prev_day:
+        nav_parts.append(f"← [[{folder}/Daily/{prev_day}|{prev_day}]]")
+    nav_parts.append(f"[[{folder}/Index|📅 전체 일정]]")
+    if next_day:
+        nav_parts.append(f"[[{folder}/Daily/{next_day}|{next_day}]] →")
+    nav = " · ".join(nav_parts)
     body = [f"# {day} ({_weekday(day)})", "", BANNER, "", *(_line(e) for e in events), "", nav, ""]
     return "\n".join(fm + [""] + body)
 
 
-def render_index(events: list[Event], today: date) -> str:
+def render_index(events: list[Event], today: date, folder: str = "Manager") -> str:
+    D = f"{folder}/Daily"
     t = today.isoformat()
     upcoming = [e for e in events if e.status == "todo" and e.day >= t
                 and e.day < (today + timedelta(days=30)).isoformat()]
@@ -67,11 +82,11 @@ def render_index(events: list[Event], today: date) -> str:
              f"_마지막 동기화: {today.isoformat()}_", ""]
     if overdue:
         lines += ["## ⚠️ 지난 미완료", ""]
-        lines += [f"- [[Daily/{e.day}|{e.day}]] " + _line(e)[2:] for e in overdue]
+        lines += [f"- [[{D}/{e.day}|{e.day}]] " + _line(e)[2:] for e in overdue]
         lines.append("")
     if ongoing:
         lines += ["## 🔄 진행 중", ""]
-        lines += [f"- [[Daily/{e.day}|{e.day}]] ~ {e.end[:10]} " + _line(e)[2:] for e in ongoing]
+        lines += [f"- [[{D}/{e.day}|{e.day}]] ~ {e.end[:10]} " + _line(e)[2:] for e in ongoing]
         lines.append("")
     lines += ["## 다가오는 30일", ""]
     if not upcoming:
@@ -80,7 +95,7 @@ def render_index(events: list[Event], today: date) -> str:
     for e in upcoming:
         by_day[e.day].append(e)
     for day, evs in by_day.items():
-        lines += [f"### [[Daily/{day}|{day} ({_weekday(day)})]]", *(_line(e) for e in evs), ""]
+        lines += [f"### [[{D}/{day}|{day} ({_weekday(day)})]]", *(_line(e) for e in evs), ""]
     by_cat: dict[str, int] = defaultdict(int)
     for e in events:
         if e.status == "todo":
@@ -127,8 +142,12 @@ def sync(store: Store, cfg: ObsidianConfig, today: date | None = None) -> dict:
         by_day[e.day].append(e)
 
     stats = {"written": 0, "removed": 0, "unchanged": 0}
-    for day, evs in by_day.items():
-        if _write_if_changed(daily_dir / f"{day}.md", render_daily(day, evs)):
+    days = sorted(by_day)
+    for i, day in enumerate(days):
+        evs = by_day[day]
+        prev_day = days[i - 1] if i > 0 else None
+        next_day = days[i + 1] if i + 1 < len(days) else None
+        if _write_if_changed(daily_dir / f"{day}.md", render_daily(day, evs, cfg.folder, prev_day, next_day)):
             stats["written"] += 1
         else:
             stats["unchanged"] += 1
@@ -138,6 +157,6 @@ def sync(store: Store, cfg: ObsidianConfig, today: date | None = None) -> dict:
             if p.stem not in by_day and _is_generated(p):
                 p.unlink()
                 stats["removed"] += 1
-    if _write_if_changed(root / "Index.md", render_index(events, today)):
+    if _write_if_changed(root / "Index.md", render_index(events, today, cfg.folder)):
         stats["written"] += 1
     return stats
